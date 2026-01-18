@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TremorScope — Precision Movement Analysis</title>
+    <meta name="description"
+        content="High-precision mouse movement analyzer detecting micro-tremors and behavioral patterns">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --primary-light: #22d3ee;
+            --accent: #10b981;
+            --accent-light: #34d399;
+            --bg-dark: #0a0f14;
+            --bg-card: rgba(15, 23, 35, 0.9);
+            --bg-glass: rgba(6, 182, 212, 0.06);
+            --border: rgba(6, 182, 212, 0.2);
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg-dark);
+            background-image:
+                radial-gradient(ellipse at 0% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 100% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+            min-height: 100vh;
+            color: var(--text);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1700px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 8px 32px rgba(6, 182, 212, 0.3);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 440px 1fr;
+            gap: 20px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: linear-gradient(180deg, var(--primary), var(--accent));
+            border-radius: 2px;
+        }
+
+        /* Tracking Canvas */
+        .canvas-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #trackingCanvas {
+            width: 100%;
+            height: 380px;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .canvas-hud {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .hud-badge {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hud-fps {
+            color: var(--accent);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 4px 20px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(71, 85, 105, 0.4);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Mode Selector */
+        .mode-selector {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--bg-glass);
+            border-color: var(--primary);
+            color: var(--primary-light);
+        }
+
+        .mode-btn:hover {
+            border-color: var(--primary);
+        }
+
+        /* Friction Display */
+        .friction-hero {
+            text-align: center;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+        }
+
+        .friction-hero.stable {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+            border: 2px solid var(--success);
+        }
+
+        .friction-hero.moderate {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.1));
+            border: 2px solid var(--warning);
+        }
+
+        .friction-hero.high {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(248, 113, 113, 0.1));
+            border: 2px solid var(--danger);
+        }
+
+        .friction-level {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .friction-hero.stable .friction-level {
+            color: var(--success);
+        }
+
+        .friction-hero.moderate .friction-level {
+            color: var(--warning);
+        }
+
+        .friction-hero.high .friction-level {
+            color: var(--danger);
+        }
+
+        .friction-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .metric-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            transition: color 0.3s;
+        }
+
+        .metric-value.low {
+            color: var(--success);
+        }
+
+        .metric-value.medium {
+            color: var(--warning);
+        }
+
+        .metric-value.high {
+            color: var(--danger);
+        }
+
+        .metric-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* Advanced Metrics */
+        .advanced-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .adv-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        .adv-metric-label {
+            color: var(--text-muted);
+        }
+
+        .adv-metric-value {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary-light);
+        }
+
+        /* Signal Quality */
+        .signal-bar {
+            height: 6px;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .signal-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .chart-container {
+            height: 180px;
+        }
+
+        /* AI Panel */
+        .ai-panel {
+            margin-top: 16px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(16, 185, 129, 0.05));
+        }
+
+        .ai-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+        }
+
+        .status-dot.analyzing {
+            background: var(--warning);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .ai-summary {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            min-height: 80px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: #e2e8f0;
+        }
+
+        .ai-verdict {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .ai-verdict.normal {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--success);
+            color: var(--accent-light);
+        }
+
+        .ai-verdict.uncertain {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid var(--warning);
+            color: #fbbf24;
+        }
+
+        .ai-verdict.abnormal {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid var(--danger);
+            color: #f87171;
+        }
+
+        /* Raw Data */
+        .raw-data {
+            background: #000;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            max-height: 120px;
+            overflow-y: auto;
+            color: var(--accent);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .charts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🔬</div>
+                <h1>TremorScope</h1>
+            </div>
+            <p class="tagline">High-Precision Movement Analysis • 60 FPS Sampling • AI-Powered Insights</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Left Panel -->
+            <div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Tracking Area</div>
+                        <div class="hud-badge hud-fps" id="fpsDisplay">0 FPS</div>
+                    </div>
+
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="free" id="modeFree">Free Draw</button>
+                        <button class="mode-btn" data-mode="precision" id="modePrecision">Precision Test</button>
+                        <button class="mode-btn" data-mode="target" id="modeTarget">Follow Target</button>
+                    </div>
+
+                    <div class="canvas-wrapper">
+                        <canvas id="trackingCanvas" width="400" height="380"></canvas>
+                        <div class="canvas-hud">
+                            <div class="hud-badge" id="positionDisplay">X: 0 Y: 0</div>
+                            <div class="hud-badge" id="samplesDisplay">0 samples</div>
+                        </div>
+                    </div>
+
+                    <div class="controls">
+                        <button class="btn btn-primary" id="startBtn">▶ Start Tracking</button>
+                        <button class="btn btn-danger" id="stopBtn" disabled>⏹ Stop</button>
+                        <button class="btn btn-secondary" id="resetBtn">↺ Reset</button>
+                    </div>
+                </div>
+
+                <!-- Signal Quality -->
+                <div class="card" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <div class="card-title">Signal Quality</div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                        <span>Samples: <strong id="sampleCount">0</strong></span>
+                        <span>Rate: <strong id="sampleRate">0</strong>/sec</span>
+                        <span>Duration: <strong id="trackDuration">0:00</strong></span>
+                    </div>
+                    <div class="signal-bar">
+                        <div class="signal-fill" id="signalFill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Raw Data -->
+                <div class="card" style="margin-top: 16px;">
+                    <div class="card-header">
+                        <div class="card-title">Raw Data Stream</div>
+                    </div>
+                    <div class="raw-data" id="rawData">Waiting for movement data...</div>
+                </div>
+
+                <!-- AI Analysis -->
+                <div class="card ai-panel">
+                    <div class="card-header">
+                        <div class="card-title">AI Movement Analysis</div>
+                        <div class="ai-status">
+                            <span class="status-dot" id="aiDot"></span>
+                            <span id="aiStatus">Connecting...</span>
+                        </div>
+                    </div>
+                    <div class="ai-summary" id="aiSummary">
+                        Start tracking to receive AI-powered analysis of your movement patterns...
+                    </div>
+                    <div class="ai-verdict normal" id="aiVerdict" style="display: none;">
+                        <span id="aiVerdictText">Normal Movement Detected</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div>
+                <!-- Friction Level -->
+                <div class="card">
+                    <div class="friction-hero stable" id="frictionHero">
+                        <div class="friction-level" id="frictionLevel">STABLE</div>
+                        <div class="friction-label">Current Movement Quality</div>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value low" id="tremorIndex">0.000</div>
+                            <div class="metric-label">Tremor Index</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value low" id="microJitter">0.000</div>
+                            <div class="metric-label">Micro-Jitter</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value low" id="velocityVar">0.000</div>
+                            <div class="metric-label">Velocity Var</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value low" id="acceleration">0.000</div>
+                            <div class="metric-label">Acceleration</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value low" id="directionChanges">0</div>
+                            <div class="metric-label">Dir Changes</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value low" id="hesitationCount">0</div>
+                            <div class="metric-label">Hesitations</div>
+                        </div>
+                    </div>
+
+                    <div class="card-header">
+                        <div class="card-title">Advanced Metrics</div>
+                    </div>
+                    <div class="advanced-grid">
+                        <div class="adv-metric">
+                            <span class="adv-metric-label">Smoothness Score</span>
+                            <span class="adv-metric-value" id="smoothness">1.000</span>
+                        </div>
+                        <div class="adv-metric">
+                            <span class="adv-metric-label">Curvature Index</span>
+                            <span class="adv-metric-value" id="curvature">0.000</span>
+                        </div>
+                        <div class="adv-metric">
+                            <span class="adv-metric-label">Path Efficiency</span>
+                            <span class="adv-metric-value" id="pathEfficiency">100%</span>
+                        </div>
+                        <div class="adv-metric">
+                            <span class="adv-metric-label">Micro-Pauses</span>
+                            <span class="adv-metric-value" id="microPauses">0</span>
+                        </div>
+                        <div class="adv-metric">
+                            <span class="adv-metric-label">Avg Velocity</span>
+                            <span class="adv-metric-value" id="avgVelocity">0 px/s</span>
+                        </div>
+                        <div class="adv-metric">
+                            <span class="adv-metric-label">Peak Velocity</span>
+                            <span class="adv-metric-value" id="peakVelocity">0 px/s</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid" style="margin-top: 16px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Velocity & Acceleration</div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="velocityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Tremor Analysis</div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="tremorChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Movement Path</div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="pathChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Direction Distribution</div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="directionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // TREMORSCOPE - Precision Movement Analysis
+        // ============================================
+
+        const OLLAMA_URL = 'http://localhost:11434';
+        const MODEL = 'qwen2.5-coder:7b-instruct-q4_K_M';
+
+        class TremorScope {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.isTracking = false;
+                this.mode = 'free';
+
+                // Data storage
+                this.samples = [];
+                this.velocities = [];
+                this.accelerations = [];
+                this.directions = [];
+                this.tremorValues = [];
+
+                // State
+                this.currentPos = { x: 0, y: 0 };
+                this.lastPos = null;
+                this.lastTime = null;
+                this.lastVelocity = 0;
+
+                // Metrics
+                this.metrics = {
+                    tremorIndex: 0,
+                    microJitter: 0,
+                    velocityVariance: 0,
+                    avgAcceleration: 0,
+                    directionChanges: 0,
+                    hesitationCount: 0,
+                    smoothness: 1,
+                    curvature: 0,
+                    pathEfficiency: 1,
+                    microPauses: 0,
+                    avgVelocity: 0,
+                    peakVelocity: 0,
+                };
+
+                // Timing
+                this.startTime = null;
+                this.frameCount = 0;
+                this.lastFpsUpdate = 0;
+                this.fps = 0;
+
+                // Tremor window
+                this.tremorWindow = [];
+                this.TREMOR_WINDOW_SIZE = 10;
+                this.hesitationThreshold = 50;
+                this.lastSignificantMove = 0;
+
+                // Visualization
+                this.trailPoints = [];
+                this.MAX_TRAIL = 300;
+                this.animationId = null;
+
+                // Target mode
+                this.target = { x: 200, y: 190 };
+                this.targetRadius = 20;
+
+                this.setupEvents();
+                this.initCharts();
+            }
+
+            setupEvents() {
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.currentPos = {
+                        x: (e.clientX - rect.left) * (this.canvas.width / rect.width),
+                        y: (e.clientY - rect.top) * (this.canvas.height / rect.height)
+                    };
+                    document.getElementById('positionDisplay').textContent =
+                        `X: ${Math.round(this.currentPos.x)} Y: ${Math.round(this.currentPos.y)}`;
+                });
+
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.lastPos = null;
+                });
+            }
+
+            initCharts() {
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            display: false,
+                            grid: { display: false }
+                        },
+                        y: {
+                            grid: { color: 'rgba(71, 85, 105, 0.2)' },
+                            ticks: { color: '#64748b', font: { size: 10 } }
+                        }
+                    }
+                };
+
+                this.velocityChart = new Chart(document.getElementById('velocityChart'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Velocity',
+                            data: [],
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: chartOptions
+                });
+
+                this.tremorChart = new Chart(document.getElementById('tremorChart'), {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Tremor',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: chartOptions
+                });
+
+                this.pathChart = new Chart(document.getElementById('pathChart'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Path',
+                            data: [],
+                            backgroundColor: 'rgba(6, 182, 212, 0.5)',
+                            pointRadius: 2
+                        }]
+                    },
+                    options: {
+                        ...chartOptions,
+                        scales: {
+                            x: { display: false },
+                            y: { display: false }
+                        }
+                    }
+                });
+
+                this.directionChart = new Chart(document.getElementById('directionChart'), {
+                    type: 'polarArea',
+                    data: {
+                        labels: ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                'rgba(6, 182, 212, 0.6)',
+                                'rgba(16, 185, 129, 0.6)',
+                                'rgba(34, 211, 238, 0.6)',
+                                'rgba(52, 211, 153, 0.6)',
+                                'rgba(6, 182, 212, 0.6)',
+                                'rgba(16, 185, 129, 0.6)',
+                                'rgba(34, 211, 238, 0.6)',
+                                'rgba(52, 211, 153, 0.6)'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { r: { display: false } }
+                    }
+                });
+            }
+
+            setMode(mode) {
+                this.mode = mode;
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                });
+                if (mode === 'target' && this.isTracking) {
+                    this.moveTarget();
+                }
+            }
+
+            moveTarget() {
+                this.target = {
+                    x: 50 + Math.random() * (this.canvas.width - 100),
+                    y: 50 + Math.random() * (this.canvas.height - 100)
+                };
+            }
+
+            start() {
+                this.isTracking = true;
+                this.startTime = performance.now();
+                this.frameCount = 0;
+                this.reset();
+                this.track();
+                this.updateDuration();
+            }
+
+            stop() {
+                this.isTracking = false;
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+            }
+
+            reset() {
+                this.samples = [];
+                this.velocities = [];
+                this.accelerations = [];
+                this.directions = [];
+                this.tremorValues = [];
+                this.tremorWindow = [];
+                this.trailPoints = [];
+                this.lastPos = null;
+                this.lastTime = null;
+                this.lastVelocity = 0;
+
+                Object.keys(this.metrics).forEach(k => {
+                    this.metrics[k] = k === 'smoothness' || k === 'pathEfficiency' ? 1 : 0;
+                });
+
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.updateDisplay();
+
+                // Reset charts
+                this.velocityChart.data.labels = [];
+                this.velocityChart.data.datasets[0].data = [];
+                this.velocityChart.update('none');
+
+                this.tremorChart.data.labels = [];
+                this.tremorChart.data.datasets[0].data = [];
+                this.tremorChart.update('none');
+
+                this.pathChart.data.datasets[0].data = [];
+                this.pathChart.update('none');
+
+                this.directionChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0, 0];
+                this.directionChart.update('none');
+
+                document.getElementById('rawData').textContent = 'Waiting for movement data...';
+            }
+
+            updateDuration() {
+                if (!this.isTracking) return;
+
+                const elapsed = Math.floor((performance.now() - this.startTime) / 1000);
+                const mins = Math.floor(elapsed / 60);
+                const secs = elapsed % 60;
+                document.getElementById('trackDuration').textContent =
+                    `${mins}:${secs.toString().padStart(2, '0')}`;
+
+                setTimeout(() => this.updateDuration(), 1000);
+            }
+
+            track() {
+                if (!this.isTracking) return;
+
+                const now = performance.now();
+                this.frameCount++;
+
+                // FPS calculation
+                if (now - this.lastFpsUpdate > 1000) {
+                    this.fps = Math.round(this.frameCount / ((now - this.startTime) / 1000));
+                    document.getElementById('fpsDisplay').textContent = `${this.fps} FPS`;
+                    this.lastFpsUpdate = now;
+                }
+
+                // Process movement
+                if (this.lastPos) {
+                    const dx = this.currentPos.x - this.lastPos.x;
+                    const dy = this.currentPos.y - this.lastPos.y;
+                    const dt = now - this.lastTime;
+
+                    if (dt > 0) {
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const velocity = (distance / dt) * 1000;
+                        const acceleration = (velocity - this.lastVelocity) / dt * 1000;
+                        const direction = Math.atan2(dy, dx);
+
+                        const sample = {
+                            x: this.currentPos.x,
+                            y: this.currentPos.y,
+                            t: now,
+                            dx, dy, dt,
+                            velocity,
+                            acceleration,
+                            direction,
+                            distance
+                        };
+
+                        this.samples.push(sample);
+                        this.velocities.push(velocity);
+                        this.accelerations.push(acceleration);
+                        this.directions.push(direction);
+
+                        this.detectMicroTremor(sample);
+
+                        // Hesitation detection
+                        if (distance < 2) {
+                            if (now - this.lastSignificantMove > this.hesitationThreshold) {
+                                this.metrics.microPauses++;
+                            }
+                        } else {
+                            this.lastSignificantMove = now;
+                        }
+
+                        this.detectDirectionChanges();
+
+                        this.trailPoints.push({ ...this.currentPos, v: velocity });
+                        if (this.trailPoints.length > this.MAX_TRAIL) {
+                            this.trailPoints.shift();
+                        }
+
+                        this.lastVelocity = velocity;
+                    }
+                }
+
+                this.lastPos = { ...this.currentPos };
+                this.lastTime = now;
+
+                // Update every 5 frames
+                if (this.frameCount % 5 === 0) {
+                    this.calculateMetrics();
+                    this.updateDisplay();
+                    this.updateCharts();
+                }
+
+                this.render();
+                this.animationId = requestAnimationFrame(() => this.track());
+            }
+
+            detectMicroTremor(sample) {
+                this.tremorWindow.push(sample);
+                if (this.tremorWindow.length > this.TREMOR_WINDOW_SIZE) {
+                    this.tremorWindow.shift();
+                }
+
+                if (this.tremorWindow.length >= 3) {
+                    const microMovements = this.tremorWindow.map(s => s.distance);
+                    const avgMove = microMovements.reduce((a, b) => a + b, 0) / microMovements.length;
+                    const variance = microMovements
+                        .map(m => Math.pow(m - avgMove, 2))
+                        .reduce((a, b) => a + b, 0) / microMovements.length;
+
+                    let dirOscillation = 0;
+                    for (let i = 2; i < this.tremorWindow.length; i++) {
+                        const dir1 = this.tremorWindow[i - 1].direction - this.tremorWindow[i - 2].direction;
+                        const dir2 = this.tremorWindow[i].direction - this.tremorWindow[i - 1].direction;
+                        if (Math.sign(dir1) !== Math.sign(dir2) && Math.abs(dir1) > 0.1) {
+                            dirOscillation++;
+                        }
+                    }
+
+                    const tremorValue = (Math.sqrt(variance) * 0.5) + (dirOscillation * 0.1);
+                    this.tremorValues.push(tremorValue);
+                }
+            }
+
+            detectDirectionChanges() {
+                if (this.directions.length < 3) return;
+
+                const recent = this.directions.slice(-3);
+                const change1 = this.normalizeAngle(recent[1] - recent[0]);
+                const change2 = this.normalizeAngle(recent[2] - recent[1]);
+
+                if (Math.abs(change2) > Math.PI / 4 && Math.sign(change1) !== Math.sign(change2)) {
+                    this.metrics.directionChanges++;
+                }
+            }
+
+            normalizeAngle(angle) {
+                while (angle > Math.PI) angle -= 2 * Math.PI;
+                while (angle < -Math.PI) angle += 2 * Math.PI;
+                return angle;
+            }
+
+            calculateMetrics() {
+                if (this.velocities.length < 10) return;
+
+                const recent = this.velocities.slice(-100);
+                const recentAcc = this.accelerations.slice(-100);
+                const recentTremor = this.tremorValues.slice(-50);
+
+                this.metrics.avgVelocity = recent.reduce((a, b) => a + b, 0) / recent.length;
+                this.metrics.peakVelocity = Math.max(...recent);
+
+                const avgV = this.metrics.avgVelocity;
+                this.metrics.velocityVariance = Math.sqrt(
+                    recent.map(v => Math.pow(v - avgV, 2)).reduce((a, b) => a + b, 0) / recent.length
+                );
+
+                this.metrics.avgAcceleration = Math.abs(
+                    recentAcc.reduce((a, b) => a + b, 0) / recentAcc.length
+                );
+
+                if (recentTremor.length > 0) {
+                    this.metrics.tremorIndex = recentTremor.reduce((a, b) => a + b, 0) / recentTremor.length;
+                    this.metrics.microJitter = Math.sqrt(
+                        recentTremor.map(t => t * t).reduce((a, b) => a + b, 0) / recentTremor.length
+                    );
+                }
+
+                this.metrics.smoothness = Math.max(0, 1 - (this.metrics.velocityVariance / 500));
+
+                if (this.samples.length > 10) {
+                    const first = this.samples[0];
+                    const last = this.samples[this.samples.length - 1];
+                    const directDistance = Math.sqrt(
+                        Math.pow(last.x - first.x, 2) + Math.pow(last.y - first.y, 2)
+                    );
+                    const actualDistance = this.samples.reduce((acc, s) => acc + s.distance, 0);
+                    this.metrics.pathEfficiency = actualDistance > 0 ?
+                        Math.min(1, directDistance / actualDistance) : 1;
+                }
+            }
+
+            updateDisplay() {
+                // Samples display
+                document.getElementById('samplesDisplay').textContent = `${this.samples.length} samples`;
+                document.getElementById('sampleCount').textContent = this.samples.length;
+
+                const elapsed = (performance.now() - (this.startTime || performance.now())) / 1000;
+                document.getElementById('sampleRate').textContent =
+                    elapsed > 0 ? Math.round(this.samples.length / elapsed) : 0;
+
+                // Signal quality
+                const quality = Math.min(100, (this.fps / 60) * 100);
+                document.getElementById('signalFill').style.width = quality + '%';
+
+                // Metrics
+                this.updateMetric('tremorIndex', this.metrics.tremorIndex.toFixed(3), 0.5, 1.5);
+                this.updateMetric('microJitter', this.metrics.microJitter.toFixed(3), 0.3, 0.8);
+                this.updateMetric('velocityVar', this.metrics.velocityVariance.toFixed(1), 100, 300);
+                this.updateMetric('acceleration', this.metrics.avgAcceleration.toFixed(1), 500, 1500);
+                this.updateMetric('directionChanges', this.metrics.directionChanges, 20, 50);
+                this.updateMetric('hesitationCount', this.metrics.microPauses, 5, 15);
+
+                document.getElementById('smoothness').textContent = this.metrics.smoothness.toFixed(3);
+                document.getElementById('curvature').textContent = this.metrics.curvature.toFixed(3);
+                document.getElementById('pathEfficiency').textContent =
+                    Math.round(this.metrics.pathEfficiency * 100) + '%';
+                document.getElementById('microPauses').textContent = this.metrics.microPauses;
+                document.getElementById('avgVelocity').textContent =
+                    Math.round(this.metrics.avgVelocity) + ' px/s';
+                document.getElementById('peakVelocity').textContent =
+                    Math.round(this.metrics.peakVelocity) + ' px/s';
+
+                // Friction level
+                const frictionScore =
+                    this.metrics.tremorIndex * 2 +
+                    this.metrics.microJitter * 2 +
+                    this.metrics.velocityVariance / 100;
+
+                const frictionHero = document.getElementById('frictionHero');
+                const frictionLevel = document.getElementById('frictionLevel');
+
+                if (frictionScore < 1.5) {
+                    frictionHero.className = 'friction-hero stable';
+                    frictionLevel.textContent = 'STABLE';
+                } else if (frictionScore < 3.5) {
+                    frictionHero.className = 'friction-hero moderate';
+                    frictionLevel.textContent = 'MODERATE';
+                } else {
+                    frictionHero.className = 'friction-hero high';
+                    frictionLevel.textContent = 'HIGH';
+                }
+
+                // Raw data
+                if (this.samples.length > 0) {
+                    const recent = this.samples.slice(-5).reverse();
+                    document.getElementById('rawData').innerHTML = recent.map(s =>
+                        `<div>t:${s.t.toFixed(0)} x:${s.x.toFixed(1)} y:${s.y.toFixed(1)} v:${s.velocity.toFixed(1)}</div>`
+                    ).join('');
+                }
+            }
+
+            updateMetric(id, value, medThreshold, highThreshold) {
+                const el = document.getElementById(id);
+                el.textContent = value;
+                const numValue = parseFloat(value);
+                el.className = 'metric-value ' + (
+                    numValue < medThreshold ? 'low' :
+                        numValue < highThreshold ? 'medium' : 'high'
+                );
+            }
+
+            updateCharts() {
+                if (this.velocities.length < 2) return;
+
+                const maxPoints = 100;
+                const recentV = this.velocities.slice(-maxPoints);
+                const recentT = this.tremorValues.slice(-maxPoints);
+                const recentPts = this.trailPoints.slice(-200);
+
+                // Velocity chart
+                this.velocityChart.data.labels = recentV.map((_, i) => i);
+                this.velocityChart.data.datasets[0].data = recentV;
+                this.velocityChart.update('none');
+
+                // Tremor chart
+                this.tremorChart.data.labels = recentT.map((_, i) => i);
+                this.tremorChart.data.datasets[0].data = recentT;
+                this.tremorChart.update('none');
+
+                // Path chart
+                this.pathChart.data.datasets[0].data = recentPts.map(p => ({ x: p.x, y: p.y }));
+                this.pathChart.update('none');
+
+                // Direction chart
+                if (this.directions.length > 10) {
+                    const bins = [0, 0, 0, 0, 0, 0, 0, 0];
+                    this.directions.slice(-100).forEach(d => {
+                        const normalized = ((d + Math.PI) / (2 * Math.PI)) * 8;
+                        const bin = Math.floor(normalized) % 8;
+                        bins[bin]++;
+                    });
+                    this.directionChart.data.datasets[0].data = bins;
+                    this.directionChart.update('none');
+                }
+            }
+
+            render() {
+                this.ctx.fillStyle = '#0a0f14';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Grid
+                this.ctx.strokeStyle = 'rgba(71, 85, 105, 0.1)';
+                this.ctx.lineWidth = 1;
+                for (let x = 0; x < this.canvas.width; x += 40) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                for (let y = 0; y < this.canvas.height; y += 40) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+
+                // Target mode
+                if (this.mode === 'target') {
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.target.x, this.target.y, this.targetRadius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = '#10b981';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+
+                    // Check if cursor is on target
+                    const dist = Math.sqrt(
+                        Math.pow(this.currentPos.x - this.target.x, 2) +
+                        Math.pow(this.currentPos.y - this.target.y, 2)
+                    );
+                    if (dist < this.targetRadius && this.isTracking) {
+                        setTimeout(() => this.moveTarget(), 200);
+                    }
+                }
+
+                // Trail
+                if (this.trailPoints.length > 1) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.trailPoints[0].x, this.trailPoints[0].y);
+
+                    for (let i = 1; i < this.trailPoints.length; i++) {
+                        const p = this.trailPoints[i];
+                        const alpha = (i / this.trailPoints.length) * 0.8;
+                        this.ctx.strokeStyle = `rgba(6, 182, 212, ${alpha})`;
+                        this.ctx.lineWidth = 2;
+                        this.ctx.lineTo(p.x, p.y);
+                    }
+                    this.ctx.stroke();
+
+                    // Points
+                    for (let i = 0; i < this.trailPoints.length; i += 5) {
+                        const p = this.trailPoints[i];
+                        const alpha = (i / this.trailPoints.length);
+                        const size = 2 + (p.v / 500) * 3;
+
+                        this.ctx.beginPath();
+                        this.ctx.arc(p.x, p.y, Math.min(size, 5), 0, Math.PI * 2);
+                        this.ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
+                        this.ctx.fill();
+                    }
+                }
+
+                // Current position
+                this.ctx.beginPath();
+                this.ctx.arc(this.currentPos.x, this.currentPos.y, 8, 0, Math.PI * 2);
+                this.ctx.fillStyle = '#06b6d4';
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            }
+        }
+
+        // Initialize
+        let tracker;
+        let aiConnected = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('trackingCanvas');
+            tracker = new TremorScope(canvas);
+
+            document.getElementById('startBtn').addEventListener('click', () => {
+                tracker.start();
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+            });
+
+            document.getElementById('stopBtn').addEventListener('click', () => {
+                tracker.stop();
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                analyzeWithAI();
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                tracker.reset();
+            });
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    tracker.setMode(btn.dataset.mode);
+                });
+            });
+
+            testOllamaConnection();
+        });
+
+        async function testOllamaConnection() {
+            try {
+                const res = await fetch(`${OLLAMA_URL}/api/tags`);
+                if (res.ok) {
+                    aiConnected = true;
+                    document.getElementById('aiDot').classList.add('connected');
+                    document.getElementById('aiStatus').textContent = 'Connected';
+                }
+            } catch (e) {
+                document.getElementById('aiStatus').textContent = 'Offline';
+            }
+        }
+
+        async function analyzeWithAI() {
+            if (!aiConnected || tracker.samples.length < 50) return;
+
+            document.getElementById('aiDot').classList.remove('connected');
+            document.getElementById('aiDot').classList.add('analyzing');
+            document.getElementById('aiStatus').textContent = 'Analyzing...';
+
+            const m = tracker.metrics;
+            const prompt = `Analyze this mouse movement data and provide a brief assessment (2-3 sentences):
+
+Tremor Index: ${m.tremorIndex.toFixed(3)}
+Micro-Jitter: ${m.microJitter.toFixed(3)}
+Velocity Variance: ${m.velocityVariance.toFixed(1)}
+Direction Changes: ${m.directionChanges}
+Smoothness: ${m.smoothness.toFixed(3)}
+Path Efficiency: ${(m.pathEfficiency * 100).toFixed(1)}%
+Samples: ${tracker.samples.length}
+
+Provide practical insights about movement quality and any patterns observed.`;
+
+            try {
+                const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        prompt: prompt,
+                        stream: false,
+                        options: { temperature: 0.7, num_predict: 150 }
+                    })
+                });
+
+                const data = await response.json();
+                document.getElementById('aiSummary').textContent = data.response;
+
+                // Verdict
+                const verdict = document.getElementById('aiVerdict');
+                verdict.style.display = 'block';
+
+                if (m.tremorIndex < 0.5 && m.smoothness > 0.7) {
+                    verdict.className = 'ai-verdict normal';
+                    document.getElementById('aiVerdictText').textContent = '✓ Normal Movement Pattern';
+                } else if (m.tremorIndex < 1.0) {
+                    verdict.className = 'ai-verdict uncertain';
+                    document.getElementById('aiVerdictText').textContent = '⚠ Some Irregularity Detected';
+                } else {
+                    verdict.className = 'ai-verdict abnormal';
+                    document.getElementById('aiVerdictText').textContent = '⚡ Significant Tremor Detected';
+                }
+
+            } catch (e) {
+                document.getElementById('aiSummary').textContent =
+                    'Unable to connect to AI. Make sure Ollama is running locally.';
+            }
+
+            document.getElementById('aiDot').classList.remove('analyzing');
+            document.getElementById('aiDot').classList.add('connected');
+            document.getElementById('aiStatus').textContent = 'Connected';
+        }
+    </script>
+</body>
+
+</html>
