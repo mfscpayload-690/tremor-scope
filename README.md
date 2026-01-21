@@ -2,44 +2,43 @@
 
 <div align="center">
 
-![TremorScope Logo](https://img.shields.io/badge/🔬-TremorScope-06b6d4?style=for-the-badge)
 ![Version](https://img.shields.io/badge/version-2.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 ![Demo](https://img.shields.io/badge/demo-live-brightgreen?style=flat-square)
 
 **High-Precision Mouse Movement Analysis • Micro-Tremor Detection • AI Insights**
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Tracking Modes](#-tracking-modes) • [Metrics](#-metrics-explained)
+[Features](#features) • [Quick Start](#quick-start) • [Tracking Modes](#tracking-modes) • [Metrics](#metrics-explained)
 
 </div>
 
 ---
 
-## ✨ Features
+## Features
 
-### 🔬 Precision Tracking
+### Precision Tracking
 - **60 FPS Sampling** — High-frequency movement capture
 - **Sub-pixel Accuracy** — Detailed position tracking
 - **Velocity & Acceleration** — Real-time speed analysis
 - **Trail Visualization** — See your movement path
 
-### 📈 Tremor Analysis
+### Tremor Analysis
 - **Micro-Tremor Detection** — Identifies involuntary movements
 - **Jitter Measurement** — Quantifies movement irregularities
 - **Direction Oscillation** — Detects back-and-forth patterns
 - **Sliding Window Analysis** — Continuous pattern monitoring
 
-### 🎮 Multiple Tracking Modes
+### Multiple Tracking Modes
 - **Free Draw** — Open canvas for natural movement
 - **Precision Test** — Structured movement challenges
 - **Follow Target** — Chase the moving target for assessment
 
-### 📊 Comprehensive Metrics
+### Comprehensive Metrics
 - **6 Primary Metrics** — Tremor, Jitter, Velocity, Acceleration, Direction, Hesitation
 - **6 Advanced Metrics** — Smoothness, Curvature, Efficiency, Pauses, Avg/Peak Velocity
 - **4 Real-time Charts** — Velocity, Tremor, Path, Direction distribution
 
-### 🤖 AI-Powered Insights
+### AI-Powered Insights
 - **Movement Assessment** — Behavioral pattern analysis
 - **Verdict System** — Normal/Uncertain/Abnormal classification
 - **Local Processing** — Privacy-first with Ollama
@@ -47,38 +46,56 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- Modern web browser (Chrome, Firefox, Edge)
-- (Optional) [Ollama](https://ollama.ai/) for AI analysis
+
+TremorScope requires the following to run:
+
+- **Web Browser**: A modern web browser (Chrome, Firefox, or Edge) with JavaScript enabled
+- **Ollama** (Optional): Required only for AI-powered analysis features. Download from [ollama.ai](https://ollama.ai/)
 
 ### Installation
 
-```bash
-# Clone the repository
-git clone https://github.com/mfscpayload-690/tremorscope.git
-cd tremorscope
+#### Method 1: Direct Browser Launch
 
-# Open in browser
-start index.html  # Windows
-open index.html   # macOS
-xdg-open index.html  # Linux
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/mfscpayload-690/tremor-scope.git
+   cd tremor-scope
+   ```
 
-### With Local Server
+2. Open the application in your web browser:
+   - **Windows**: `start index.html`
+   - **macOS**: `open index.html`
+   - **Linux**: `xdg-open index.html`
+
+#### Method 2: Using a Local Server
+
+For a more reliable experience, serve the application using a local HTTP server:
+
 ```bash
 npx http-server . -p 8080
 ```
 
-### Enable AI Analysis (Optional)
-```bash
-ollama run qwen2.5-coder:7b-instruct-q4_K_M
-```
+Then navigate to `http://localhost:8080` in your web browser.
+
+### Enabling AI Analysis (Optional)
+
+To enable AI-powered movement analysis, you must have Ollama installed and running:
+
+1. Install Ollama from [ollama.ai](https://ollama.ai/)
+
+2. Start the required model:
+   ```bash
+   ollama run qwen2.5-coder:7b-instruct-q4_K_M
+   ```
+
+3. Ensure Ollama is running on the default port (11434). The application will automatically detect and connect to the local Ollama instance.
 
 ---
 
-## 🎮 Tracking Modes
+## Tracking Modes
 
 ### Free Draw Mode
 Open canvas for natural, unrestricted movement analysis. Best for general assessment.
@@ -91,7 +108,7 @@ Chase a moving target around the canvas. Great for testing reaction time and pre
 
 ---
 
-## 📊 Metrics Explained
+## Metrics Explained
 
 ### Primary Metrics
 
@@ -117,13 +134,13 @@ Chase a moving target around the canvas. Great for testing reaction time and pre
 
 ### Friction Levels
 
-- 🟢 **STABLE** — Normal, controlled movement
-- 🟡 **MODERATE** — Some irregularity detected
-- 🔴 **HIGH** — Significant tremor/friction present
+- **STABLE** — Normal, controlled movement
+- **MODERATE** — Some irregularity detected
+- **HIGH** — Significant tremor/friction present
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Component | Technology |
 |-----------|------------|
@@ -135,7 +152,7 @@ Chase a moving target around the canvas. Great for testing reaction time and pre
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ```javascript
 // AI Settings
@@ -150,7 +167,7 @@ this.MAX_TRAIL = 300;  // Trail visualization length
 
 ---
 
-## 🎯 Use Cases
+## Use Cases
 
 - **Motor Control Research** — Study movement patterns
 - **UX/UI Testing** — Analyze user interaction behavior
@@ -160,7 +177,7 @@ this.MAX_TRAIL = 300;  // Trail visualization length
 
 ---
 
-## 🎨 UI Features
+## UI Features
 
 - **Cyan-Emerald Theme** — Scientific aesthetic
 - **Real-time Charts** — Dynamic data visualization
@@ -170,7 +187,7 @@ this.MAX_TRAIL = 300;  // Trail visualization length
 
 ---
 
-## 📄 License
+## License
 
 MIT License — See [LICENSE](LICENSE) for details.
 
@@ -178,7 +195,7 @@ MIT License — See [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Made with ❤️ for the open-source community**
+**Built for the open-source community**
 
 [Report Bug](../../issues) • [Request Feature](../../issues)
 
