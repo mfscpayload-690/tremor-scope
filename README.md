@@ -57,7 +57,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tremorscope.git
+git clone https://github.com/mfscpayload-690/tremorscope.git
 cd tremorscope
 
 # Open in browser
